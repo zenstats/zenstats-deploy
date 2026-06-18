@@ -1,5 +1,8 @@
 # ZenStats 系统架构说明
 
+> 本文档属于 [zenstats-deploy](https://git.potawang.cn/zenstats/zenstats-deploy) 仓库。
+> API 后端: [zenstats](https://git.potawang.cn/zenstats/zenstats) · 前端: [zenstats-web](https://git.potawang.cn/zenstats/zenstats-web)
+
 ## 目录
 
 - [项目概述](#项目概述)
@@ -15,7 +18,10 @@
 
 ## 项目概述
 
-ZenStats 是一个隐私友好的网站分析平台，系统采用 Go 后端 + React 前端的架构，支持事件追踪、流量分析、漏斗分析等功能。
+ZenStats 是一个隐私友好的网站分析平台，采用三仓库架构：
+- **[zenstats](https://git.potawang.cn/zenstats/zenstats)** — Go API 后端
+- **[zenstats-web](https://git.potawang.cn/zenstats/zenstats-web)** — React 管理面板 + Tracker JS SDK
+- **[zenstats-deploy](https://git.potawang.cn/zenstats/zenstats-deploy)** — Docker Compose 部署编排（本仓库）
 
 核心特性：
 - 无 Cookie 追踪，保护用户隐私
@@ -39,7 +45,7 @@ ZenStats 是一个隐私友好的网站分析平台，系统采用 Go 后端 + R
 ### 前端
 | 技术 | 用途 |
 |------|------|
-| React 18 | UI 框架 |
+| React 19 | UI 框架 |
 | TypeScript | 类型安全 |
 | Vite | 构建工具 |
 | React Router | 路由管理 |
@@ -55,13 +61,17 @@ ZenStats 是一个隐私友好的网站分析平台，系统采用 Go 后端 + R
 ### 部署
 | 技术 | 用途 |
 |------|------|
-| Docker | 容器化 |
+| Docker + Buildx | 多架构容器构建 |
 | Docker Compose | 服务编排 |
-| Caddy | 反向代理、自动 SSL |
+| Caddy 2 | 反向代理、自动 SSL |
+| Gitea Actions | CI/CD 自动构建推送镜像 |
+| GitHub Container Registry | 镜像仓库 |
 
 ---
 
 ## 目录结构
+
+### API 后端 (zenstats)
 
 ```
 zenstats/
@@ -70,7 +80,7 @@ zenstats/
 │   ├── server.go          # 启动 HTTP 服务
 │   ├── migrate.go         # 数据库迁移
 │   ├── seed.go            # 初始化数据
-│   └── doc.go             # 生成 Swagger 文档
+│   └── doc.go             # Swagger 文档服务器
 │
 ├── internal/               # 核心业务逻辑（不可外部导入）
 │   ├── api/               # HTTP 路由与处理器
@@ -124,25 +134,45 @@ zenstats/
 ├── sql/                    # 数据库脚本
 │   ├── clickhouse/        # ClickHouse 建表语句
 │   └── migration.sql      # PostgreSQL 迁移脚本
-│
-├── config/                 # 配置文件
-│   ├── config_prod.yaml   # 生产环境配置
-│   └── config_dev.yaml    # 开发环境配置
-│
-├── deploy/                 # Docker 部署配置
-│   ├── docker-compose.yml # 生产环境编排
-│   ├── docker-compose.dev.yml # 开发环境编排
-│   └── clickhouse/        # ClickHouse 配置
-│
-├── data/                   # 数据文件
-│   └── geoip/             # GeoIP 数据库
-│
-└── docs/                   # 项目文档
-    ├── ARCHITECTURE.md    # 架构说明（本文档）
-    ├── api-stats.md       # 统计 API 文档
-    ├── tracker.md         # 追踪脚本文档（英文）
-    ├── tracker_zh.md      # 追踪脚本文档（中文）
-    └── DEPLOY.md          # 部署指南
+├── Dockerfile              # API 后端 Docker 镜像
+├── entrypoint.sh           # 容器入口（自动 migrate + 启动）
+└── main.go
+```
+
+### 前端面板 + Tracker (zenstats-web)
+
+```
+zenstats-web/
+├── src/                    # React 应用源码
+│   ├── pages/             # 页面组件
+│   ├── components/        # 通用 UI 组件
+│   ├── store/             # Zustand 状态管理
+│   └── utils/             # Axios 封装、工具函数
+├── tracker/               # Tracker JS SDK
+│   ├── src/               # 追踪脚本源码
+│   ├── compile.js         # 64 变体编译
+│   └── dist/              # 编译产物 (gitignore)
+├── public/                # 静态资源
+├── Dockerfile             # 三阶段构建 (tracker→frontend→caddy)
+├── Caddyfile              # Caddy 网关配置
+└── .gitea/                # CI 工作流（多架构 buildx → ghcr.io）
+```
+
+### 部署编排 (zenstats-deploy)
+
+```
+zenstats-deploy/
+├── docker-compose.yml          # 生产部署
+├── docker-compose.dev.yml      # 开发覆盖
+├── docker-compose.test.yml     # 集成测试
+├── .env.example                # 环境变量模板
+├── clickhouse/                 # ClickHouse 配置
+│   ├── logs.xml
+│   ├── ipv4-only.xml
+│   └── low-resources.xml
+└── docs/                       # 部署文档
+    ├── DEPLOY.md
+    └── architecture.md
 ```
 
 ---
@@ -451,21 +481,35 @@ web/src/
 
 ## 部署架构
 
-### Docker Compose 服务
+### 三仓库协作
 
 ```
-                    ┌─────────────────────────────────────┐
-                    │           Docker Compose            │
-                    │                                     │
-  Internet ──▶ [Caddy:80/443] ──▶ [ZenStats:8080]         │
-                    │                    │                │
-                    │         ┌──────────┴──────────┐     │
-                    │         ▼                     ▼     │
-                    │   [PostgreSQL:5432]   [ClickHouse:9000]
-                    │         │                     │     │
-                    │         ▼                     ▼     │
-                    │   [db-data 卷]       [event-data 卷] │
-                    └─────────────────────────────────────┘
+┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐
+│   zenstats   │  │ zenstats-web │  │   zenstats-deploy    │
+│  Go API 后端  │  │ React + Caddy│  │  Docker Compose 编排  │
+├──────────────┤  ├──────────────┤  ├──────────────────────┤
+│ CI → ghcr.io │  │ CI → ghcr.io │  │ docker compose up -d  │
+│ :amd64 :arm64│  │ :amd64 :arm64│  │  拉取镜像 → 启动全栈   │
+└──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘
+       │                 │                      │
+       └────────┬────────┘                      │
+                ▼                               ▼
+         ghcr.io/zenstats/*          ┌──────────────────┐
+                                     │  Docker Compose   │
+                                     │  ┌────────────┐   │
+                                     │  │  frontend   │   │
+                                     │  │  Caddy :443 │   │
+                                     │  └─────┬──────┘   │
+                                     │        │ /api/*   │
+                                     │  ┌─────▼──────┐   │
+                                     │  │  zenstats   │   │
+                                     │  │  Go :8080   │   │
+                                     │  └──┬─────┬───┘   │
+                                     │     │     │       │
+                                     │  ┌──▼──┐ ┌▼───┐  │
+                                     │  │ PG  │ │ CH │   │
+                                     │  └─────┘ └─────┘  │
+                                     └──────────────────┘
 ```
 
 ### 服务说明
@@ -484,4 +528,13 @@ web/src/
 | db-data | PostgreSQL 数据 |
 | event-data | ClickHouse 事件数据 |
 | event-logs | ClickHouse 日志 |
-| zenstats-data | 应用数据（GeoIP 等） |
+| zenstats-data | 应用数据（GeoIP 等，运行时自动下载） |
+
+### 镜像架构
+
+所有镜像支持多架构，Docker 自动匹配：
+
+| 架构 | 适用环境 |
+|------|----------|
+| `linux/amd64` | x86 服务器（Intel/AMD）、云服务器 |
+| `linux/arm64` | Apple Silicon Mac、树莓派、ARM 云服务器（AWS Graviton） |
