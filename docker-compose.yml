@@ -10,7 +10,7 @@
 services:
   # ---- 前端网关 (Caddy) ----
   frontend:
-    image: ${IMAGE_FRONTEND:-ghcr.io/zenstats/zenstats-web:latest}
+    image: ${IMAGE_FRONTEND:-git.potawang.cn/zenstats/zenstats-web:latest}
     restart: always
     ports:
       - "80:80"
@@ -23,7 +23,7 @@ services:
 
   # ---- API 后端 ----
   zenstats:
-    image: ${IMAGE_ZENSTATS:-ghcr.io/zenstats/zenstats:latest}
+    image: ${IMAGE_ZENSTATS:-git.potawang.cn/zenstats/zenstats:latest}
     # 本地构建（需将 zenstats 仓库 clone 到 ../zenstats）:
     # build:
     #   context: ../zenstats
