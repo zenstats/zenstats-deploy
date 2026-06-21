@@ -5,7 +5,7 @@ services:
   zenstats:
     # 开发时从本地源码构建，覆盖预构建镜像
     build:
-      context: ..
+      context: ../zenstats
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
