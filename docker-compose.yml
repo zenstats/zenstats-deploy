@@ -59,7 +59,7 @@ services:
 
   # ---- 数据库 ----
   zenstats_db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -76,7 +76,7 @@ services:
       start_period: 30s
 
   zenstats_events_db:
-    image: clickhouse/clickhouse-server:24.12-alpine
+    image: clickhouse/clickhouse-server:25.11.5.8-alpine
     restart: unless-stopped
     volumes:
       - event-data:/var/lib/clickhouse

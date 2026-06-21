@@ -7,7 +7,7 @@
 
 services:
   zenstats_test_db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: "no"
     ports:
       - "5433:5432"
@@ -24,7 +24,7 @@ services:
       - /var/lib/postgresql/data
 
   zenstats_test_events_db:
-    image: clickhouse/clickhouse-server:24.12-alpine
+    image: clickhouse/clickhouse-server:25.11.5.8-alpine
     restart: "no"
     ports:
       - "8124:8123"
