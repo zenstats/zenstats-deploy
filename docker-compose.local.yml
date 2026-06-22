@@ -1,0 +1,66 @@
+# ============================================================================
+# ZenStats 本地开发环境 — 一键启动全栈服务
+# ============================================================================
+# 用法:
+#   make local                # 启动全部服务（API 从本地源码构建）
+#   make local-up             # 同上
+#   make local-down           # 停止并清理
+#
+# 或直接使用 docker compose:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+#
+# 前提:
+#   zenstats/ 和 zenstats-web/ 已 clone 到同级目录
+#   （即 ../zenstats 和 ../zenstats-web 存在）
+#
+# 端口映射（宿主机 ← 容器）:
+#   80, 443   ← Caddy 前端网关
+#   8080      ← API 后端
+#   5433      ← PostgreSQL      (匹配 config_dev.yaml)
+#   9001      ← ClickHouse Native  (匹配 config_dev.yaml)
+#   8124      ← ClickHouse HTTP   (匹配 config_dev.yaml)
+# ============================================================================
+
+services:
+  # ---- API 后端（本地构建） ----
+  zenstats:
+    # 从本地源码构建，覆盖预构建镜像
+    build:
+      context: ../zenstats
+      dockerfile: Dockerfile
+    # 开发模式：使用 dev 配置、debug 日志、暴露端口
+    environment:
+      - APP_ENV=dev
+      - GIN_MODE=debug
+      - ZENSTATS_LOG_LEVEL=debug
+      - ZENSTATS_SECRET_KEY=${ZENSTATS_SECRET_KEY:-local-dev-secret-key}
+      # 容器内通过 service name 连接数据库
+      - ZENSTATS_DB_HOST=zenstats_db
+      - ZENSTATS_DB_PORT=5432
+      - ZENSTATS_CLICKHOUSE_ADDR=zenstats_events_db:9000
+      # 以下从 .env 读取或使用默认值
+      - ZENSTATS_DOMAIN=${ZENSTATS_DOMAIN:-localhost}
+      - ZENSTATS_MAXMIND_LICENSE_KEY=${ZENSTATS_MAXMIND_LICENSE_KEY:-}
+      - ZENSTATS_GEOIP_MIRROR=${ZENSTATS_GEOIP_MIRROR:-}
+    ports:
+      - "8080:8080"
+
+  # ---- 前端网关（本地构建） ----
+  # 如需使用预构建镜像加速，注释 build 并取消 image 注释
+  frontend:
+    build:
+      context: ../zenstats-web
+      dockerfile: Dockerfile
+      args:
+        VITE_DATA_DOMAIN: ${ZENSTATS_DOMAIN:-localhost}
+    # image: ${IMAGE_FRONTEND:-ghcr.io/zenstats/zenstats-web:latest}
+
+  # ---- 数据库端口暴露（方便宿主机工具连接） ----
+  zenstats_db:
+    ports:
+      - "5433:5432"     # 宿主机 5433 → 容器 5432（与 config_dev.yaml 一致）
+
+  zenstats_events_db:
+    ports:
+      - "9001:9000"     # ClickHouse Native 协议
+      - "8124:8123"     # ClickHouse HTTP 接口

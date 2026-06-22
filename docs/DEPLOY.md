@@ -90,33 +90,114 @@ docker compose up -d
 
 ## 本地开发
 
-将三个仓库 clone 到同级目录：
+### 一键启动全栈（推荐）
+
+将三个仓库 clone 到同级目录，一条命令启动：
 
 ```bash
+# 目录结构要求:
+# ~/projects/
+#   ├── zenstats/          (API 后端)
+#   ├── zenstats-web/      (前端面板)
+#   └── zenstats-deploy/   (部署配置，当前目录)
+
 git clone https://git.potawang.cn/zenstats/zenstats.git ../zenstats
 git clone https://git.potawang.cn/zenstats/zenstats-web.git ../zenstats-web
 git clone https://git.potawang.cn/zenstats/zenstats-deploy.git
 cd zenstats-deploy
+
+make local
 ```
 
-启动开发环境（暴露数据库端口 + API 本地构建）：
+这会自动：
+1. 从 `.env.local` 创建 `.env`（全部默认值，开箱即用）
+2. 启动 PostgreSQL + ClickHouse 容器
+3. 从本地 `../zenstats` 源码构建 API 镜像并启动
+4. 从本地 `../zenstats-web` 源码构建前端，启动 Caddy 网关
+
+启动后访问 **http://localhost** 即可看到完整的管理面板。
+
+### 开发模式选择
+
+| 模式 | 命令 | 适用场景 |
+|------|------|----------|
+| **全栈 Docker** | `make local` | 快速预览、前后端联调 |
+| **仅数据库 + 宿主机 API** | `make db-up` + 手动 `go run` | IDE 断点调试、频繁改 API |
+| **仅数据库 + 前端热重载** | `make db-up` + `make frontend-dev` | 频繁改前端 UI |
+| **Mock 前端（零依赖）** | `cd ../zenstats-web && VITE_USE_MOCK=true pnpm dev` | 纯前端开发，无需后端 |
+
+### 常用命令
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+make local          # 一键启动全栈
+make local-down     # 停止并清理数据卷
+make local-logs     # 实时查看所有服务日志
+make local-ps       # 查看服务运行状态
+make local-build    # 修改 API 代码后重新构建并重启
+make local-reset    # 完全重置（清理 + 重建）
+make seed-test      # 生成 3 天测试数据
+make seed           # 生成 30 天全量仿真数据
+
+make db-up          # 仅启动数据库（PG + CH）
+make db-down        # 停止数据库
+make frontend-dev   # 启动前端 Vite 开发服务器（热重载）
 ```
 
-| 服务 | 端口 |
-|------|------|
-| Caddy 网关 | 80, 443 |
-| API 后端 | 8080 |
-| PostgreSQL | 5432 |
-| ClickHouse HTTP | 8123 |
-| ClickHouse Native | 9000 |
+### 端口映射
 
-修改 API 代码后重新构建：
+本地开发环境端口映射（宿主机 ← 容器）：
+
+| 服务 | 宿主机端口 | 容器端口 | 说明 |
+|------|-----------|----------|------|
+| Caddy 网关 | 80, 443 | 80, 443 | 前端 + API 代理 |
+| API 后端 | 8080 | 8080 | 调试接口 |
+| PostgreSQL | **5433** | 5432 | 避免与宿主机 PG 冲突 |
+| ClickHouse Native | **9001** | 9000 | 与 config_dev.yaml 一致 |
+| ClickHouse HTTP | **8124** | 8123 | 浏览器访问 |
+
+> 宿主机端口映射与 `zenstats/config/config_dev.yaml` 完全对齐，无需额外配置。
+
+### 使用预构建前端镜像（可选，加速启动）
+
+默认 `make local` 从本地源码构建前端（首次约 3-5 分钟）。如需加速：
+
+1. 编辑 `docker-compose.local.yml`，注释 `build` 并取消 `image` 注释
+2. 运行 `make local`
+
+或直接使用 `make frontend-dev` 在宿主机运行 Vite 开发服务器（推荐，支持热重载）。
+
+### 修改 API 后如何生效
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build zenstats
+# 方式 1: 重新构建 API 镜像（全栈 Docker 模式）
+make local-build
+
+# 方式 2: 宿主机直接运行（仅数据库模式）
+make db-up
+cd ../zenstats && go run main.go server
+```
+
+### 修改前端后如何生效
+
+```bash
+# 方式 1: Vite 热重载（推荐）
+make frontend-dev     # 保存代码即刷新
+
+# 方式 2: 重新构建前端 Docker 镜像
+make frontend-build
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d frontend
+```
+
+### 环境变量
+
+本地开发使用 `.env.local` 模板，全部默认值即可：
+
+```bash
+# 查看当前配置
+cat .env
+
+# 如需自定义（如使用远程数据库）:
+vi .env
 ```
 
 ---

@@ -21,7 +21,7 @@ services:
       retries: 10
       start_period: 10s
     tmpfs:
-      - /var/lib/postgresql/data
+      - /var/lib/postgresql
 
   zenstats_test_events_db:
     image: clickhouse/clickhouse-server:25.11.5.8-alpine
