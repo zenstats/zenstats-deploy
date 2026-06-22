@@ -67,7 +67,6 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
-      start_period: 30s
 
   # ---- 数据库 ----
   zenstats_db:
