@@ -15,6 +15,7 @@ local: local-up
 # 启动全栈开发环境（前后端均从本地源码构建）
 local-up:
 	@cp -n .env.local .env 2>/dev/null || true
+	@docker compose -f docker-compose.yml -f docker-compose.local.yml down 2>/dev/null || true
 	@docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 	@echo ""
 	@echo "========================================"
