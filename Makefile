@@ -103,12 +103,12 @@ db-reset: db-down db-up
 
 # 生成测试数据（3 天确定性数据，~200 事件）
 seed-test:
-	@docker compose -f docker-compose.yml -f docker-compose.local.yml exec zenstats /app/zenstats seed --test --clean
+	@docker compose -f docker-compose.yml -f docker-compose.local.yml exec -e ZENSTATS_LOG_LEVEL=warn zenstats /app/zenstats seed --test --clean
 	@echo "测试数据已生成（3 天，确定性随机种子=42）。"
 
 # 生成全量仿真数据（30 天真实分布数据，含多维度 UA/Geo/UTM）
 seed:
-	@docker compose -f docker-compose.yml -f docker-compose.local.yml exec zenstats /app/zenstats seed --clean
+	@docker compose -f docker-compose.yml -f docker-compose.local.yml exec -e ZENSTATS_LOG_LEVEL=warn zenstats /app/zenstats seed --clean
 	@echo "全量仿真数据已生成（30 天）。"
 
 # ============================================================================
