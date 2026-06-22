@@ -39,6 +39,7 @@ services:
     environment:
       - APP_ENV=prod
       - GIN_MODE=release
+      - ZENSTATS_LOG_OUTPUT=stdout
       - ZENSTATS_DB_HOST=zenstats_db
       - ZENSTATS_DB_PORT=5432
       - ZENSTATS_DB_PASSWORD=${DB_PASSWORD:-postgres}
@@ -60,6 +61,12 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
       start_period: 30s
 
   # ---- 数据库 ----

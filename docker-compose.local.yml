@@ -32,6 +32,7 @@ services:
     environment:
       - APP_ENV=dev
       - GIN_MODE=debug
+      - ZENSTATS_LOG_OUTPUT=stdout
       - ZENSTATS_LOG_LEVEL=debug
       - ZENSTATS_SECRET_KEY=${ZENSTATS_SECRET_KEY:-local-dev-secret-key}
       # 容器内通过 service name 连接数据库
