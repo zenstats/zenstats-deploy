@@ -31,7 +31,7 @@ ZenStats 由三个独立仓库组成，通过 Docker Compose 编排部署：
 │              ▼                           ▼           │
 │     ┌────────────────┐     ┌────────────────────┐    │
 │     │  zenstats_db   │     │ zenstats_events_db │    │
-│     │  PostgreSQL 16 │     │  ClickHouse 24.12  │    │
+│     │  PostgreSQL 18 │     │  ClickHouse 25.11  │    │
 │     └────────────────┘     └────────────────────┘    │
 └─────────────────────────────────────────────────────┘
 ```
@@ -152,10 +152,10 @@ make frontend-dev   # 启动前端 Vite 开发服务器（热重载）
 | Caddy 网关 | 80, 443 | 80, 443 | 前端 + API 代理 |
 | API 后端 | 8080 | 8080 | 调试接口 |
 | PostgreSQL | **5433** | 5432 | 避免与宿主机 PG 冲突 |
-| ClickHouse Native | **9001** | 9000 | 与 config_dev.yaml 一致 |
+| ClickHouse Native | **9001** | 9000 | 与默认配置一致 |
 | ClickHouse HTTP | **8124** | 8123 | 浏览器访问 |
 
-> 宿主机端口映射与 `zenstats/config/config_dev.yaml` 完全对齐，无需额外配置。
+> 宿主机端口映射与嵌入式默认配置完全对齐，无需额外配置。
 
 ### 使用预构建前端镜像（可选，加速启动）
 
@@ -264,8 +264,8 @@ docker compose exec zenstats_events_db clickhouse-client --query "BACKUP DATABAS
 ### 环境要求
 
 - Go 1.24+
-- PostgreSQL 16+
-- ClickHouse 24.12+
+- PostgreSQL 18+
+- ClickHouse 25.11+
 
 ### 步骤
 

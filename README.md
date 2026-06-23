@@ -105,7 +105,7 @@ go run main.go migrate
 go run main.go server       # → http://localhost:8080
 ```
 
-数据库端口已映射为 `localhost:5433`（PG）和 `localhost:9001`（CH），与 `config_dev.yaml` 一致。
+数据库端口已映射为 `localhost:5433`（PG）和 `localhost:9001`（CH），与嵌入式默认配置一致。
 
 ### 端口映射参考
 
@@ -114,7 +114,7 @@ go run main.go server       # → http://localhost:8080
 | Caddy | 80, 443 | 80, 443 | 前端网关 |
 | API | 8080 | 8080 | Go 后端 |
 | PostgreSQL | 5432 | **5433** | 避免与宿主机 PG 冲突 |
-| ClickHouse Native | 9000 | **9001** | 与 config_dev.yaml 一致 |
+| ClickHouse Native | 9000 | **9001** | 与默认配置一致 |
 | ClickHouse HTTP | 8123 | **8124** | 浏览器访问 |
 
 ---
