@@ -24,6 +24,8 @@ services:
       - "443:443"
     environment:
       - ZENSTATS_DOMAIN=${ZENSTATS_DOMAIN:-localhost}
+    volumes:
+      - caddy-data:/data
     depends_on:
       zenstats:
         condition: service_healthy
@@ -124,3 +126,4 @@ volumes:
   event-data:
   event-logs:
   zenstats-data:
+  caddy-data:
