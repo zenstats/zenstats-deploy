@@ -1,7 +1,7 @@
 # ZenStats 系统架构说明
 
-> 本文档属于 [zenstats-deploy](https://git.potawang.cn/zenstats/zenstats-deploy) 仓库。
-> API 后端: [zenstats](https://git.potawang.cn/zenstats/zenstats) · 前端: [zenstats-web](https://git.potawang.cn/zenstats/zenstats-web)
+> 本文档属于 [zenstats-deploy](https://github.com/zenstats/zenstats-deploy) 仓库。
+> API 后端: [zenstats](https://github.com/zenstats/zenstats) · 前端: [zenstats-web](https://github.com/zenstats/zenstats-web)
 
 ## 目录
 
@@ -19,9 +19,9 @@
 ## 项目概述
 
 ZenStats 是一个隐私友好的网站分析平台，采用三仓库架构：
-- **[zenstats](https://git.potawang.cn/zenstats/zenstats)** — Go API 后端
-- **[zenstats-web](https://git.potawang.cn/zenstats/zenstats-web)** — React 管理面板 + Tracker JS SDK
-- **[zenstats-deploy](https://git.potawang.cn/zenstats/zenstats-deploy)** — Docker Compose 部署编排（本仓库）
+- **[zenstats](https://github.com/zenstats/zenstats)** — Go API 后端
+- **[zenstats-web](https://github.com/zenstats/zenstats-web)** — React 管理面板 + Tracker JS SDK
+- **[zenstats-deploy](https://github.com/zenstats/zenstats-deploy)** — Docker Compose 部署编排（本仓库）
 
 核心特性：
 - 无 Cookie 追踪，保护用户隐私

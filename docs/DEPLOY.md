@@ -38,8 +38,8 @@ ZenStats 由三个独立仓库组成，通过 Docker Compose 编排部署：
 
 | 仓库 | 镜像 | 说明 |
 |------|------|------|
-| [zenstats](https://git.potawang.cn/zenstats/zenstats) | `ghcr.io/zenstats/zenstats` | Go API 后端 |
-| [zenstats-web](https://git.potawang.cn/zenstats/zenstats-web) | `ghcr.io/zenstats/zenstats-web` | Caddy + React SPA + Tracker JS |
+| [zenstats](https://github.com/zenstats/zenstats) | `ghcr.io/zenstats/zenstats` | Go API 后端 |
+| [zenstats-web](https://github.com/zenstats/zenstats-web) | `ghcr.io/zenstats/zenstats-web` | Caddy + React SPA + Tracker JS |
 
 镜像支持 `linux/amd64` 和 `linux/arm64`，Docker 自动选择匹配架构。
 
@@ -50,7 +50,7 @@ ZenStats 由三个独立仓库组成，通过 Docker Compose 编排部署：
 ### 1. 克隆部署项目
 
 ```bash
-git clone https://git.potawang.cn/zenstats/zenstats-deploy.git
+git clone https://github.com/zenstats/zenstats-deploy.git
 cd zenstats-deploy
 ```
 
@@ -101,9 +101,9 @@ docker compose up -d
 #   ├── zenstats-web/      (前端面板)
 #   └── zenstats-deploy/   (部署配置，当前目录)
 
-git clone https://git.potawang.cn/zenstats/zenstats.git ../zenstats
-git clone https://git.potawang.cn/zenstats/zenstats-web.git ../zenstats-web
-git clone https://git.potawang.cn/zenstats/zenstats-deploy.git
+git clone https://github.com/zenstats/zenstats.git ../zenstats
+git clone https://github.com/zenstats/zenstats-web.git ../zenstats-web
+git clone https://github.com/zenstats/zenstats-deploy.git
 cd zenstats-deploy
 
 make local
@@ -270,7 +270,7 @@ docker compose exec zenstats_events_db clickhouse-client --query "BACKUP DATABAS
 ### 步骤
 
 ```bash
-git clone https://git.potawang.cn/zenstats/zenstats.git
+git clone https://github.com/zenstats/zenstats.git
 cd zenstats
 
 # 配置
