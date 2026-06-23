@@ -11,6 +11,13 @@ services:
   # ---- 前端网关 (Caddy) ----
   frontend:
     image: ${IMAGE_FRONTEND:-ghcr.io/zenstats/zenstats-web:latest}
+    # 本地构建（需将 zenstats-web 仓库 clone 到 ../zenstats-web）:
+    # 使用方式: docker compose build --no-cache frontend && docker compose up -d
+    # build:
+    #   context: ../zenstats-web
+    #   dockerfile: Dockerfile
+    #   args:
+    #     VITE_DATA_DOMAIN: ${ZENSTATS_DOMAIN:-localhost}
     restart: always
     ports:
       - "80:80"

@@ -126,6 +126,16 @@ prod-down:
 	@docker compose down
 	@echo "生产环境已停止。"
 
+# 生产环境本地构建前端镜像（使用 .env 中的 ZENSTATS_DOMAIN）
+# 适用于需要自定义 VITE_DATA_DOMAIN 且无法等待 CI 重建的场景
+prod-build:
+	@test -f .env || (echo "ERROR: 请先 cp .env.example .env 并编辑配置" && exit 1)
+	@echo "正在使用本地源码构建前端镜像（ZENSTATS_DOMAIN=$${ZENSTATS_DOMAIN:-localhost}）..."
+	@docker compose -f docker-compose.yml -f docker-compose.local.yml build --no-cache frontend
+	@echo ""
+	@echo "前端镜像已构建完成。运行 make prod-up 重新部署。"
+	@echo "注意：新镜像已支持运行时通过 ZENSTATS_DOMAIN 环境变量动态设置 data-domain。"
+
 prod-logs:
 	@docker compose logs -f
 

@@ -49,12 +49,12 @@ services:
   # ---- 前端网关（本地构建） ----
   # 如需使用预构建镜像加速，注释 build 并取消 image 注释
   frontend:
+    image: ${IMAGE_FRONTEND:-ghcr.io/zenstats/zenstats-web:latest}
     build:
       context: ../zenstats-web
       dockerfile: Dockerfile
       args:
         VITE_DATA_DOMAIN: ${ZENSTATS_DOMAIN:-localhost}
-    # image: ${IMAGE_FRONTEND:-ghcr.io/zenstats/zenstats-web:latest}
 
   # ---- 数据库端口暴露（方便宿主机工具连接） ----
   zenstats_db:
