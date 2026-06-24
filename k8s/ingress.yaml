@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zenstats
+  namespace: zenstats
+  labels:
+    app.kubernetes.io/part-of: zenstats
+  annotations:
+    # TLS 由 cert-manager 自动管理（集群需安装 cert-manager）
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+    # 如不使用 cert-manager，请注释上一行并手动创建 TLS Secret:
+    #   kubectl create secret tls zenstats-tls --cert=... --key=... -n zenstats
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - stats.example.com
+      # cert-manager 将自动创建/续期此 Secret
+      secretName: zenstats-tls
+  rules:
+    - host: stats.example.com
+      http:
+        paths:
+          # API 路由 → 后端
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: zenstats-api
+                port:
+                  number: 8080
+          # 前端 SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

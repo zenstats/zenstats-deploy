@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: zenstats
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - postgresql/service.yaml
+  - postgresql/statefulset.yaml
+  - clickhouse/service.yaml
+  - clickhouse/statefulset.yaml
+  - zenstats-api/pvc.yaml
+  - zenstats-api/service.yaml
+  - zenstats-api/deployment.yaml
+  - frontend/service.yaml
+  - frontend/deployment.yaml
+  - ingress.yaml
+
+# 为所有资源添加通用标签
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: zenstats
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
+
+# 镜像版本覆盖（生产部署时修改）
+# images:
+#   - name: ghcr.io/zenstats/zenstats
+#     newTag: v1.0.0
+#   - name: ghcr.io/zenstats/zenstats-web
+#     newTag: v1.0.0
+
+# Secret 生成器（替代明文 secret.yaml）
+# 取消注释以下内容并移除 secret.yaml 以使用:
+# secretGenerator:
+#   - name: zenstats-secrets
+#     envs:
+#       - .env.secret

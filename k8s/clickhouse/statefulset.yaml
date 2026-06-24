@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clickhouse
+  namespace: zenstats
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/part-of: zenstats
+spec:
+  serviceName: clickhouse
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouse
+        app.kubernetes.io/part-of: zenstats
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 101  # ClickHouse 用户组，确保卷权限正确
+      # ClickHouse 需要较高的文件描述符限制
+      # K8s 节点默认通常为 1048576，如果不足可配置 sysctls:
+      # securityContext:
+      #   sysctls:
+      #     - name: fs.nr_open
+      #       value: "262144"
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:25.11.5.8-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8123
+              protocol: TCP
+            - name: native
+              containerPort: 9000
+              protocol: TCP
+          env:
+            - name: CLICKHOUSE_SKIP_USER_SETUP
+              value: "1"
+            - name: CLICKHOUSE_DB
+              value: "zenstats_events_db"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/clickhouse
+            - name: logs
+              mountPath: /var/log/clickhouse-server
+            - name: config
+              mountPath: /etc/clickhouse-server/config.d/ipv4-only.xml
+              subPath: ipv4-only.xml
+              readOnly: true
+            - name: config
+              mountPath: /etc/clickhouse-server/config.d/logs.xml
+              subPath: logs.xml
+              readOnly: true
+            - name: config
+              mountPath: /etc/clickhouse-server/config.d/low-resources.xml
+              subPath: low-resources.xml
+              readOnly: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8123
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8123
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: config
+          configMap:
+            name: clickhouse-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: clickhouse
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+    - metadata:
+        name: logs
+        labels:
+          app.kubernetes.io/name: clickhouse
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi

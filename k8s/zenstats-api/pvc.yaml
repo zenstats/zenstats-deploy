@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zenstats-app-data
+  namespace: zenstats
+  labels:
+    app.kubernetes.io/name: zenstats-api
+    app.kubernetes.io/part-of: zenstats
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # GeoIP 数据库 ~40MB，首次启动自动下载
