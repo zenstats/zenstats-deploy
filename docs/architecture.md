@@ -162,14 +162,17 @@ zenstats-web/
 
 ```
 zenstats-deploy/
-├── docker-compose.yml          # 生产部署
-├── docker-compose.dev.yml      # 开发覆盖
-├── docker-compose.test.yml     # 集成测试
-├── .env.example                # 环境变量模板
+├── docker-compose.yml          # 生产部署（基础配置）
+├── docker-compose.local.yml    # 本地开发覆盖（源码构建 + 端口映射）
+├── docker-compose.test.yml     # 集成测试（独立端口 + tmpfs）
+├── .env.example                # 生产环境变量模板
+├── .env.local                  # 本地开发变量模板（开箱即用）
+├── Makefile                    # 常用命令封装
 ├── clickhouse/                 # ClickHouse 配置
 │   ├── logs.xml
 │   ├── ipv4-only.xml
 │   └── low-resources.xml
+├── k8s/                        # Kubernetes 部署清单
 └── docs/                       # 部署文档
     ├── DEPLOY.md
     └── architecture.md
@@ -255,7 +258,7 @@ PRIMARY KEY (site_id, toDate(timestamp), name, user_id)
 
 #### Sessions 表结构
 
-Sessions 表通过物化视图从 Events 表聚合生成，存储会话级别的统计数据。
+Sessions 表由 Go 后端 session 服务直接写入，存储会话级别的统计数据。采用 VersionedCollapsingMergeTree 实现 upsert 语义：每次会话更新写入一对行（sign=-1 取消旧版本，sign=+1 写入新版本），ClickHouse 后台 Merge 时自动折叠为最新版本。
 
 ```sql
 CREATE TABLE sessions (
@@ -284,27 +287,31 @@ ENGINE = VersionedCollapsingMergeTree(sign, version)
     │
     ▼
 [Tracker Script] ──POST /api/event──▶ [Event API]
+                                          │ 同步：GeoIP + UA 解析
+                                          ▼
+                                   [DynamicQueue]          # 有界异步队列，最大 100 worker
                                           │
                                           ▼
-                                   [Event Service]
+                                   [Worker Goroutine]      # 协程池并发处理
                                           │
-                            ┌─────────────┴─────────────┐
-                            ▼                           ▼
-                    [Buffer/Cache]              [GeoIP 解析]
-                            │                   [UA 解析]
-                            ▼                           │
-                    [ClickHouse Events] ◀───────────────┘
-                            │
-                            ▼ (物化视图)
-                    [ClickHouse Sessions]
+                           ┌─────────────┼──────────────┐
+                           ▼             ▼              ▼
+                   [MonthlyQuota]  [Event WriteBuffer]  [Session Balancer]
+                   # 配额计数       # 批量缓冲/写入       # userID % 100 路由
+                                          │                    │
+                                          ▼                    ▼
+                                   [ClickHouse events]  [Session WriteBuffer]
+                                                               │
+                                                               ▼
+                                                        [ClickHouse sessions]
 ```
 
 **流程说明：**
 1. Tracker 脚本收集页面浏览、参与度、自定义事件等数据
-2. 通过 POST 请求发送到 `/api/event` 端点
-3. Event Service 处理事件，进行 GeoIP 和 UA 解析
-4. 事件写入 ClickHouse events 表
-5. 物化视图自动聚合生成 sessions 数据
+2. 通过 POST 请求发送到 `/api/event` 端点，同步完成 GeoIP 和 UA 解析
+3. 事件投递到 DynamicQueue，由协程池（最大 100 并发 worker）异步处理
+4. Event WriteBuffer 批量缓冲后写入 ClickHouse events 表（动态调节批次大小，5 次重试）
+5. Session Balancer 按 userID % 100 路由，保证同一用户会话串行更新，直接写入 ClickHouse sessions 表
 
 ### 2. 统计查询流程
 
@@ -333,19 +340,31 @@ ENGINE = VersionedCollapsingMergeTree(sign, version)
 - `breakdown` — 维度细分（来源、页面、设备等排行）
 - `current-visitors` — 实时访客数
 
-### 3. Session 聚合流程
+### 3. Session 写入与折叠
 
 ```
-Events 表
-    │
-    ▼ (MergeTree 后台合并)
-[Session Dedup]
+新事件到达
     │
     ▼
-Sessions 表 (VersionedCollapsingMergeTree)
+[Session Balancer]           # userID % 100 路由，同一用户天然串行
     │
     ▼
-[统计查询]
+[Session Manager]            # 读取当前会话状态，计算更新内容
+    │
+    ├── sign=-1（取消旧版本）
+    └── sign=+1（写入新版本）
+           │
+           ▼
+    [Session WriteBuffer]    # 批量缓冲（3 次重试）
+           │
+           ▼
+    Sessions 表              # VersionedCollapsingMergeTree
+           │
+           ▼ 后台 Merge
+    [自动折叠]               # 相同 session_id，保留最新 version
+           │
+           ▼
+    [统计查询]
 ```
 
 ---

@@ -6,32 +6,29 @@ metadata:
   labels:
     app.kubernetes.io/part-of: zenstats
   annotations:
-    # TLS 由 cert-manager 自动管理（集群需安装 cert-manager）
+    # TLS 由 cert-manager 自动管理
+    # ⚠️  ClusterIssuer 的 ingressClassName 必须与下方 spec.ingressClassName 保持一致
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    # nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    # nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
-    # 如不使用 cert-manager，请注释上一行并手动创建 TLS Secret:
-    #   kubectl create secret tls zenstats-tls --cert=... --key=... -n zenstats
+    # 如不使用 cert-manager，注释上一行并手动创建 TLS Secret:
+    #   kubectl create secret tls zenstats-tls --cert=fullchain.pem --key=privkey.pem -n zenstats
 spec:
+  # 改为你的 Ingress 控制器（traefik / nginx / ...）
   ingressClassName: traefik
   tls:
     - hosts:
         - stats.example.com
-      # cert-manager 将自动创建/续期此 Secret
       secretName: zenstats-tls
   rules:
     - host: stats.example.com
       http:
         paths:
-          # API 路由 → 后端
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: zenstats-api
-                port:
-                  number: 8080
-          # 前端 SPA
+          # 所有流量经由 Caddy（frontend）统一处理：
+          #   /js/*        — Tracker 脚本（静态文件 + CORS 头）
+          #   /api/event   — 事件采集（CORS 预检 + 代理到后端）
+          #   /api/*       — 后端 API 代理
+          #   /            — React SPA
+          # ⚠️  不要在此拆分 /api 直连 zenstats-api —
+          #     会绕过 Caddy 的 CORS 处理，导致第三方网站 Tracker 跨域失败
           - path: /
             pathType: Prefix
             backend:

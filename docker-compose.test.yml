@@ -36,6 +36,10 @@ services:
     environment:
       - CLICKHOUSE_SKIP_USER_SETUP=1
       - CLICKHOUSE_DB=zenstats_events_db
+    volumes:
+      - ./clickhouse/ipv4-only.xml:/etc/clickhouse-server/config.d/ipv4-only.xml:ro
+      - ./clickhouse/logs.xml:/etc/clickhouse-server/config.d/logs.xml:ro
+      - ./clickhouse/low-resources.xml:/etc/clickhouse-server/config.d/low-resources.xml:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8123/ping || exit 1"]
       interval: 5s

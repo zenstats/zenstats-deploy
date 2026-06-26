@@ -230,7 +230,6 @@ IMAGE_FRONTEND=ghcr.io/zenstats/zenstats-web:v1.0.0
 
 Caddy 自动通过 Let's Encrypt 申请和续期 SSL 证书。
 
-- 确保障书邮箱：`ZENSTATS_ACME_EMAIL=admin@example.com`（可选）
 - 域名必须正确解析到服务器 IP
 - 80/443 端口必须可公网访问
 
@@ -240,8 +239,15 @@ Caddy 自动通过 Let's Encrypt 申请和续期 SSL 证书。
 # PostgreSQL
 docker compose exec zenstats_db pg_dump -U postgres zenstats > backup.sql
 
-# ClickHouse
-docker compose exec zenstats_events_db clickhouse-client --query "BACKUP DATABASE zenstats_events_db TO Disk('backups', 'backup.zip')"
+# ClickHouse（停机备份数据卷）
+docker compose stop zenstats_events_db
+mkdir -p ./backups
+docker compose run --rm \
+  -v "$(pwd)/backups":/backup \
+  --entrypoint sh \
+  zenstats_events_db \
+  -c "tar czf /backup/clickhouse-$(date +%Y%m%d).tar.gz -C /var/lib/clickhouse ."
+docker compose start zenstats_events_db
 ```
 
 ### 数据持久化

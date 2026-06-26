@@ -6,7 +6,7 @@ namespace: zenstats
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret.yaml
+  - secret.yaml          # 开发/测试用。生产建议替换为下方 secretGenerator
   - postgresql/service.yaml
   - postgresql/statefulset.yaml
   - clickhouse/service.yaml
@@ -25,15 +25,22 @@ labels:
       app.kubernetes.io/managed-by: kustomize
     includeSelectors: false
 
-# 镜像版本覆盖（生产部署时修改）
+# ── 生产：镜像版本固定 ──────────────────────────────────────────────
+# 取消注释并修改版本号，避免 latest 意外更新:
 # images:
 #   - name: ghcr.io/zenstats/zenstats
 #     newTag: v1.0.0
 #   - name: ghcr.io/zenstats/zenstats-web
 #     newTag: v1.0.0
 
-# Secret 生成器（替代明文 secret.yaml）
-# 取消注释以下内容并移除 secret.yaml 以使用:
+# ── 生产：Secret 生成器（推荐，避免明文密钥进 Git）─────────────────
+# 使用步骤:
+#   1. 创建 k8s/.env.secret（已在 .gitignore 中排除）:
+#        DB_PASSWORD=<openssl rand -base64 16>
+#        ZENSTATS_SECRET_KEY=<openssl rand -base64 32>
+#        ZENSTATS_MAXMIND_LICENSE_KEY=<your_key>
+#   2. 取消注释下方 secretGenerator
+#   3. 将上方 resources 中的 "- secret.yaml" 一行删除
 # secretGenerator:
 #   - name: zenstats-secrets
 #     envs:
