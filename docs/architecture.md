@@ -95,7 +95,7 @@ zenstats/
 │   │   ├── user/          # 用户相关接口
 │   │   ├── import/        # 数据导入接口
 │   │   ├── admin/         # 管理员接口
-│   │   └── health/        # 健康检查接口
+│   │   └── health/        # 健康检查接口（/health, /health/live, /health/ready）
 │   │
 │   ├── service/           # 业务服务层
 │   │   ├── stats/         # 统计查询服务
@@ -418,8 +418,12 @@ ENGINE = VersionedCollapsingMergeTree(sign, version)
 │   ├── users/              # 用户管理
 │   ├── groups/             # 套餐管理
 │   ├── sites/              # 站点管理
+│   │   └── :siteId/traffic-alert/test  # 触发流量告警测试（POST）
+│   ├── sources/            # 内置来源管理（CRUD）
 │   ├── configs             # 系统配置
 │   └── stats               # 系统统计
+├── v2/
+│   └── query               # 通用统计查询（JWT 或 API Key，POST）
 └── import/:domain/          # 数据导入（JWT 或 API Key）
 ```
 
@@ -463,19 +467,27 @@ ENGINE = VersionedCollapsingMergeTree(sign, version)
 /
 ├── /login                   # 登录页
 ├── /setup                   # 初始设置
+├── /docs                    # 使用文档
+├── /shared/:token           # 共享链接（无需登录）
 ├── /sites                   # 站点列表
 │   ├── /new                 # 新建站点
-│   ├── /:domain/
-│   │   ├── /stats           # 统计面板
-│   │   ├── /funnel-analysis # 漏斗分析
-│   │   ├── /install         # 安装指南
-│   │   └── /settings/       # 站点设置
-│   │       ├── /general     # 基本设置
-│   │       ├── /goals       # 目标管理
-│   │       ├── /funnels     # 漏斗管理
-│   │       └── /shields     # 屏蔽设置
+│   └── /:domain/
+│       ├── /stats           # 统计面板
+│       ├── /funnel-analysis # 漏斗分析
+│       ├── /install         # 安装指南
+│       └── /settings/       # 站点设置
+│           ├── /general     # 基本设置
+│           ├── /goals       # 目标管理
+│           ├── /funnels     # 漏斗管理
+│           └── /shields     # 屏蔽设置
 ├── /apikeys                 # API Key 管理
-└── /settings/account        # 账户设置
+├── /settings/account        # 账户设置
+└── /admin/                  # 管理后台（需 Admin 角色）
+    ├── /users               # 用户管理
+    ├── /sites               # 站点管理
+    ├── /groups              # 套餐管理
+    ├── /sources             # 内置来源管理
+    └── /settings            # 系统配置
 ```
 
 ### 组件结构

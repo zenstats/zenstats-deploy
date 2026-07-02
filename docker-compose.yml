@@ -19,6 +19,8 @@ services:
       - ZENSTATS_DOMAIN=${ZENSTATS_DOMAIN:-localhost}
     volumes:
       - caddy-data:/data
+    networks:
+      - frontend
     depends_on:
       zenstats:
         condition: service_healthy
@@ -48,18 +50,23 @@ services:
       - ZENSTATS_DB_USERNAME=postgres
       - ZENSTATS_DB_DATABASE=zenstats
       - ZENSTATS_CLICKHOUSE_ADDR=zenstats_events_db:9000
+      - ZENSTATS_CLICKHOUSE_USERNAME=zenstats
+      - ZENSTATS_CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
       - ZENSTATS_MAXMIND_LICENSE_KEY=${ZENSTATS_MAXMIND_LICENSE_KEY}
       - ZENSTATS_SECRET_KEY=${ZENSTATS_SECRET_KEY:-}
       - ZENSTATS_DOMAIN=${ZENSTATS_DOMAIN:-localhost}
     volumes:
       - zenstats-data:/app/data
+    networks:
+      - frontend
+      - backend
     depends_on:
       zenstats_db:
         condition: service_healthy
       zenstats_events_db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8080/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8080/api/health/ready || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -81,6 +88,8 @@ services:
     environment:
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
       - POSTGRES_DB=zenstats
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -105,14 +114,22 @@ services:
         soft: 262144
         hard: 262144
     environment:
-      - CLICKHOUSE_SKIP_USER_SETUP=1
       - CLICKHOUSE_DB=zenstats_events_db
+      - CLICKHOUSE_USER=zenstats
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    networks:
+      - backend
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8123/ping || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - 'http://zenstats:${CLICKHOUSE_PASSWORD:-}@127.0.0.1:8123/ping' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+
+networks:
+  frontend:   # frontend ↔ zenstats
+  backend:    # zenstats ↔ zenstats_db ↔ zenstats_events_db
 
 volumes:
   db-data:

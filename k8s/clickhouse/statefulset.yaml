@@ -39,10 +39,18 @@ spec:
               containerPort: 9000
               protocol: TCP
           env:
-            - name: CLICKHOUSE_SKIP_USER_SETUP
-              value: "1"
             - name: CLICKHOUSE_DB
               value: "zenstats_events_db"
+            - name: CLICKHOUSE_USER
+              value: "zenstats"
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zenstats-secrets
+                  key: CLICKHOUSE_PASSWORD
+                  optional: true
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
           volumeMounts:
             - name: data
               mountPath: /var/lib/clickhouse

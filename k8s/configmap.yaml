@@ -46,7 +46,7 @@ data:
   low-resources.xml: |
     <!-- 低内存环境优化（< 16 GB RAM） -->
     <clickhouse>
-        <mark_cache_size>524288000</mark_cache_size>
+        <mark_cache_size>134217728</mark_cache_size>
 
         <profile>
             <default>
@@ -159,3 +159,5 @@ metadata:
 data:
   # 部署域名（必填 — 修改为你的实际域名）
   ZENSTATS_DOMAIN: "stats.example.com"
+  # GeoIP 镜像（国内集群可解除注释加速下载）
+  # ZENSTATS_GEOIP_MIRROR: "https://github.com/Loyalsoldier/geoip/releases/latest/download"

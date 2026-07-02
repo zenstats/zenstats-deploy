@@ -64,10 +64,10 @@ vi .env
 **最小配置**（其余使用默认值）：
 
 ```bash
-ZENSTATS_MAXMIND_LICENSE_KEY=your_key_here   # 免费注册: https://dev.maxmind.com
-ZENSTATS_DOMAIN=stats.example.com            # 你的域名
-ZENSTATS_SECRET_KEY=$(openssl rand -base64 32)
+ZENSTATS_SECRET_KEY=$(openssl rand -base64 32)   # 必填，留空生产启动失败
+ZENSTATS_DOMAIN=stats.example.com                # 你的域名
 DB_PASSWORD=your_secure_password
+ZENSTATS_MAXMIND_LICENSE_KEY=your_key_here       # 可选，免费注册: https://dev.maxmind.com
 ```
 
 ### 3. 启动
@@ -82,7 +82,7 @@ docker compose up -d
 
 - 管理面板：`https://stats.example.com`
 - 埋点脚本：`https://stats.example.com/js/script.js`
-- API 健康检查：`https://stats.example.com/api/health`
+- API 健康检查：`https://stats.example.com/api/health`（综合）/ `/api/health/live`（存活）/ `/api/health/ready`（就绪，含数据库）
 
 > 使用 `localhost` 域名时 Caddy 使用自签名证书，浏览器需手动信任。
 
@@ -269,7 +269,7 @@ docker compose start zenstats_events_db
 
 ### 环境要求
 
-- Go 1.24+
+- Go 1.25+
 - PostgreSQL 18+
 - ClickHouse 25.11+
 
@@ -304,10 +304,10 @@ make build
 
 | 变量 | 必填 | 默认 | 说明 |
 |------|------|------|------|
-| `ZENSTATS_MAXMIND_LICENSE_KEY` | 是 | — | MaxMind GeoIP Key（免费） |
+| `ZENSTATS_SECRET_KEY` | **生产必填** | — | JWT 签名密钥，留空生产环境启动失败 |
+| `ZENSTATS_MAXMIND_LICENSE_KEY` | 否 | — | MaxMind GeoIP Key（免费注册，留空降级使用 Loyalsoldier 数据） |
 | `ZENSTATS_DOMAIN` | 否 | `localhost` | 部署域名 |
-| `ZENSTATS_SECRET_KEY` | 建议 | 自动生成 | JWT 签名密钥 |
-| `DB_PASSWORD` | 是 | `postgres` | 数据库密码 |
+| `DB_PASSWORD` | 建议修改 | `postgres` | 数据库密码 |
 | `IMAGE_ZENSTATS` | 否 | `ghcr.io/zenstats/zenstats:latest` | API 镜像 |
 | `IMAGE_FRONTEND` | 否 | `ghcr.io/zenstats/zenstats-web:latest` | 前端镜像 |
 | `APP_ENV` | 否 | `prod` | 运行环境 |

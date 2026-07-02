@@ -83,6 +83,14 @@ spec:
             # ClickHouse 连接
             - name: ZENSTATS_CLICKHOUSE_ADDR
               value: "clickhouse.zenstats.svc.cluster.local:9000"
+            - name: ZENSTATS_CLICKHOUSE_USERNAME
+              value: "zenstats"
+            - name: ZENSTATS_CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zenstats-secrets
+                  key: CLICKHOUSE_PASSWORD
+                  optional: true
             # 域名
             - name: ZENSTATS_DOMAIN
               valueFrom:
@@ -107,6 +115,12 @@ spec:
                   name: zenstats-secrets
                   key: ZENSTATS_MAXMIND_LICENSE_KEY
                   optional: true
+            - name: ZENSTATS_GEOIP_MIRROR
+              valueFrom:
+                configMapKeyRef:
+                  name: zenstats-config
+                  key: ZENSTATS_GEOIP_MIRROR
+                  optional: true
           volumeMounts:
             - name: app-data
               mountPath: /app/data
@@ -119,7 +133,7 @@ spec:
               memory: 512Mi
           livenessProbe:
             httpGet:
-              path: /api/health
+              path: /api/health/live
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 15
@@ -127,7 +141,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /api/health
+              path: /api/health/ready
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 5
